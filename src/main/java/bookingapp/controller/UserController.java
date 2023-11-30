@@ -41,7 +41,6 @@ public class UserController {
         return userService.updateById(user.getId(), updateRequestDto);
     }
 
-
     private User getUserByAuthentication(Authentication authentication) {
         return (User) authentication.getPrincipal();
     }
