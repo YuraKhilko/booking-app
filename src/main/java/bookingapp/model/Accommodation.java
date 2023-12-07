@@ -20,13 +20,11 @@ import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
 
 @Entity
 @Getter
 @Setter
 @SQLDelete(sql = "UPDATE accommodations SET is_deleted = TRUE WHERE id = ?")
-@Where(clause = "is_deleted = FALSE")
 @Table(name = "accommodations")
 public class Accommodation {
     @Id
@@ -35,7 +33,7 @@ public class Accommodation {
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
     private Type type;
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     @JoinColumn(name = "address_id")
     private Address address;
     @Column(name = "size", nullable = false)

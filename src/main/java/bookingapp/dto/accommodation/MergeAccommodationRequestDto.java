@@ -9,7 +9,7 @@ import java.util.Set;
 import lombok.Data;
 
 @Data
-public class CreateAccommodationRequestDto {
+public class MergeAccommodationRequestDto {
     @NotEmpty
     private String type;
     @NotNull

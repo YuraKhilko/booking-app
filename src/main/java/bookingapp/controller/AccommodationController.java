@@ -1,7 +1,7 @@
 package bookingapp.controller;
 
 import bookingapp.dto.accommodation.AccommodationDto;
-import bookingapp.dto.accommodation.CreateAccommodationRequestDto;
+import bookingapp.dto.accommodation.MergeAccommodationRequestDto;
 import bookingapp.service.AccommodationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "/accommodations")
 @RequiredArgsConstructor
 public class AccommodationController {
-    private AccommodationService accommodationService;
+    private final AccommodationService accommodationService;
 
     @Operation(summary = "Provides a list of available accommodations",
             description = "Provides a list of available accommodations")
@@ -48,16 +48,16 @@ public class AccommodationController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public AccommodationDto createAccommodation(
-            @Valid @RequestBody CreateAccommodationRequestDto createAccommodationRequestDto) {
-        return accommodationService.createAccommodation(createAccommodationRequestDto);
+            @Valid @RequestBody MergeAccommodationRequestDto mergeAccommodationRequestDto) {
+        return accommodationService.createAccommodation(mergeAccommodationRequestDto);
     }
 
     @Operation(summary = "Update accommodation",
             description = "Update accommodation")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public AccommodationDto createAccommodation(@PathVariable Long id,
-            @Valid @RequestBody CreateAccommodationRequestDto updateAccommodationRequestDto) {
+    public AccommodationDto updateAccommodation(@PathVariable Long id,
+            @Valid @RequestBody MergeAccommodationRequestDto updateAccommodationRequestDto) {
         return accommodationService.updateAccommodation(id, updateAccommodationRequestDto);
     }
 

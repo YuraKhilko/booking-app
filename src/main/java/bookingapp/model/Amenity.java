@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.SQLDelete;
@@ -25,4 +26,28 @@ public class Amenity {
     private String name;
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted;
+
+    public Amenity(Long id) {
+        this.id = id;
+    }
+
+    public Amenity() {
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Amenity amenity = (Amenity) o;
+        return Objects.equals(id, amenity.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }

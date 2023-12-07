@@ -1,7 +1,8 @@
 package bookingapp.service;
 
 import bookingapp.dto.accommodation.AccommodationDto;
-import bookingapp.dto.accommodation.CreateAccommodationRequestDto;
+import bookingapp.dto.accommodation.MergeAccommodationRequestDto;
+import bookingapp.model.Accommodation;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 
@@ -11,10 +12,14 @@ public interface AccommodationService {
     AccommodationDto findById(Long id);
 
     AccommodationDto createAccommodation(
-            CreateAccommodationRequestDto createAccommodationRequestDto);
+            MergeAccommodationRequestDto mergeAccommodationRequestDto);
 
     AccommodationDto updateAccommodation(
-            Long id, CreateAccommodationRequestDto updateAccommodationRequestDto);
+            Long id, MergeAccommodationRequestDto mergeAccommodationRequestDto);
 
     void deleteById(Long id);
+
+    Accommodation findAccommodationById(Long id);
+
+    boolean isAccommodationAvailable(Long id);
 }
