@@ -69,15 +69,15 @@ public class CustomGlobalExceptionHandler extends ResponseEntityExceptionHandler
                 HttpStatus.BAD_REQUEST, request);
     }
 
-    @ExceptionHandler(value = DuplicateEntityException.class)
-    protected ResponseEntity<Object> handleDuplicateEntityException(
-            DuplicateEntityException ex,
+    @ExceptionHandler(value = BookingManipulationException.class)
+    protected ResponseEntity<Object> handleBookingManipulationException(
+            BookingManipulationException ex,
             WebRequest request
     ) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", HttpStatus.CONFLICT);
-        body.put("error", "Duplicate entity. " + ex.getMessage());
+        body.put("error", "Booking manipulation error. " + ex.getMessage());
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
 }
