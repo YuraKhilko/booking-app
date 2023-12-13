@@ -17,3 +17,5 @@ databaseChangeLog:
       file: db/changelog/changes/08-create-accommodations_amenities-table.yml
   - include:
       file: db/changelog/changes/09-create-bookings-table.yml
+  - include:
+      file: db/changelog/changes/10-modify-users-table.yml

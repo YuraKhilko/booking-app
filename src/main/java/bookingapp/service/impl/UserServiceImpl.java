@@ -48,7 +48,7 @@ public class UserServiceImpl implements UserService {
     private User initializeNewUser(UserRegistrationRequestDto requestDto)
             throws RegistrationException {
         User user = new User();
-        user.setEmail(requestDto.getEmail());
+        user.setEmail(requestDto.getEmail().toLowerCase());
         user.setFirstName(requestDto.getFirstName());
         user.setLastName(requestDto.getLastName());
         user.setPassword(passwordEncoder.encode(requestDto.getPassword()));

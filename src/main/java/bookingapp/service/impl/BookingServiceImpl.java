@@ -3,17 +3,15 @@ package bookingapp.service.impl;
 import bookingapp.dto.booking.BookingDto;
 import bookingapp.dto.booking.CreateBookingRequestDto;
 import bookingapp.dto.booking.UpdateBookingRequestDto;
-import bookingapp.exception.DuplicateEntityException;
+import bookingapp.exception.BookingManipulationException;
 import bookingapp.exception.EntityNotFoundException;
 import bookingapp.mapper.BookingMapper;
 import bookingapp.model.Booking;
 import bookingapp.model.User;
 import bookingapp.repository.BookingRepository;
-import bookingapp.service.AccommodationService;
 import bookingapp.service.BookingService;
+import bookingapp.telegram.NotificationService;
 import jakarta.transaction.Transactional;
-import java.time.LocalDate;
-import java.time.Period;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -28,61 +26,52 @@ public class BookingServiceImpl implements BookingService {
     private static final Booking.Status STATUS_ALLOWED_TO_UPDATE = Booking.Status.PENDING;
     private final BookingRepository bookingRepository;
     private final BookingMapper bookingMapper;
-    private final AccommodationService accommodationService;
+    private final NotificationService notificationService;
 
     @Override
     public BookingDto findById(Long userId, Long bookingId) {
-        Booking bookingById = findBookingById(userId, bookingId);
+        Booking bookingById = findUsersBookingById(userId, bookingId);
         return bookingMapper.toDto(bookingById);
     }
 
-    @Override
-    @Transactional
-    public BookingDto createBooking(Long userId, CreateBookingRequestDto createBookingRequestDto) {
-        Booking booking = bookingMapper.toEntity(createBookingRequestDto);
-        User user = initializeUserById(userId);
-        booking.setUser(user);
-        booking.setStatus(DEFAULT_STATUS);
-
-        if (isBookingAvailable(booking)) {
-            bookingRepository.save(booking);
-            return bookingMapper.toDto(booking);
+    private Booking findUsersBookingById(Long userId, Long bookingId) {
+        Booking bookingById = findBookingById(bookingId);
+        if (!bookingById.getUser().getId().equals(userId)) {
+            throw new EntityNotFoundException("Can't find users booking by id " + bookingId);
         }
-        return null;
+        return bookingById;
     }
 
-    private User initializeUserById(Long userId) {
+    private Booking findBookingById(Long bookingId) {
+        return bookingRepository.findById(bookingId).orElseThrow(
+                () -> new EntityNotFoundException("Can't find booking by id " + bookingId));
+    }
+
+    @Override
+    public BookingDto createBooking(Long userId, CreateBookingRequestDto createBookingRequestDto) {
+        Booking booking = getNewBookingByDto(userId, createBookingRequestDto);
+
+        bookingRepository.isNewBookingAvailableAndSave(booking);
+
+        reinitializeBookingAndSendNotification(booking.getId());
+
+        return bookingMapper.toDto(booking);
+    }
+
+    private Booking getNewBookingByDto(
+            Long userId,
+            CreateBookingRequestDto createBookingRequestDto) {
+        Booking booking = bookingMapper.toEntity(createBookingRequestDto);
         User user = new User();
         user.setId(userId);
-        return user;
+        booking.setUser(user);
+        booking.setStatus(DEFAULT_STATUS);
+        return booking;
     }
 
-    private boolean isBookingAvailable(Booking booking) {
-        Long accommodationId = booking.getAccommodation().getId();
-        return isAccommodationAvailable(accommodationId) && isBookingNotPresent(booking);
-    }
-
-    private boolean isAccommodationAvailable(Long accommodationId) {
-        return accommodationService.isAccommodationAvailable(accommodationId);
-    }
-
-    private boolean isBookingNotPresent(Booking booking) {
-        Period period = Period.between(booking.getCheckIn(), booking.getCheckOut());
-        int totalBookingDays = period.getDays();
-        for (int i = 0; i < totalBookingDays; i++) {
-            LocalDate checkIn = booking.getCheckIn().plusDays(i);
-            LocalDate checkOut = checkIn.plusDays(1);
-            boolean isBookingByOneDayAvailable = bookingRepository.checkIfNewBookingAvailable(
-                    booking.getAccommodation().getId(),
-                    checkIn,
-                    checkOut,
-                    booking.getId());
-            if (!isBookingByOneDayAvailable) {
-                throw new DuplicateEntityException("Booking with such parameters is "
-                        + "already present.");
-            }
-        }
-        return true;
+    private void reinitializeBookingAndSendNotification(Long bookingId) {
+        Booking booking = findBookingById(bookingId);
+        notificationService.sendBookingNotification(booking);
     }
 
     @Override
@@ -109,32 +98,39 @@ public class BookingServiceImpl implements BookingService {
             Long bookingId,
             UpdateBookingRequestDto updateBookingRequestDto
     ) {
-        Booking bookingForUpdate = findBookingById(userId, bookingId);
+        Booking updatedBooking =
+                getUpdatedBookingByDto(userId, bookingId, updateBookingRequestDto);
 
-        if (isBookingAllowedToUpdate(bookingForUpdate)) {
-            Booking sourceBooking = bookingMapper.toEntity(updateBookingRequestDto);
-            bookingForUpdate.setCheckIn(sourceBooking.getCheckIn());
-            bookingForUpdate.setCheckOut(sourceBooking.getCheckOut());
-            if (isBookingAvailable(bookingForUpdate)) {
-                bookingRepository.save(bookingForUpdate);
-                return bookingMapper.toDto(bookingForUpdate);
-            }
+        if (isBookingStatusAllowedToUpdateOrThrow(updatedBooking)) {
+            bookingRepository.isNewBookingAvailableAndSave(updatedBooking);
+            notificationService.sendBookingNotification(updatedBooking);
+            return bookingMapper.toDto(updatedBooking);
         }
         return null;
     }
 
-    private boolean isBookingAllowedToUpdate(Booking bookingForUpdate) {
-        return isAccommodationAvailable(bookingForUpdate.getAccommodation().getId())
-                && bookingForUpdate.getStatus().name().equals(STATUS_ALLOWED_TO_UPDATE.name());
+    Booking getUpdatedBookingByDto(Long userId,
+                                   Long bookingId,
+                                   UpdateBookingRequestDto updateBookingRequestDto) {
+        Booking updatedBooking = findUsersBookingById(userId, bookingId);
+        Booking sourceBooking = bookingMapper.toEntity(updateBookingRequestDto);
+        updatedBooking.setCheckIn(sourceBooking.getCheckIn());
+        updatedBooking.setCheckOut(sourceBooking.getCheckOut());
+        return updatedBooking;
     }
 
-    private Booking findBookingById(Long userId, Long bookingId) {
-        return bookingRepository.findByUserIdAndId(userId, bookingId).orElseThrow(
-                () -> new EntityNotFoundException("Can't find booking by id " + bookingId));
+    private boolean isBookingStatusAllowedToUpdateOrThrow(Booking booking) {
+        if (!booking.getStatus().equals(STATUS_ALLOWED_TO_UPDATE)) {
+            throw new BookingManipulationException(
+                    "Booking status is not allowed to update entity.");
+        }
+        return true;
     }
 
     @Override
     public void deleteById(Long userId, Long id) {
         bookingRepository.deleteByUserIdAndId(userId, id);
+        Booking booking = findBookingById(id);
+        notificationService.sendBookingNotification(booking);
     }
 }
