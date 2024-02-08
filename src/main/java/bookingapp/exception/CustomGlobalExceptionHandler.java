@@ -80,4 +80,17 @@ public class CustomGlobalExceptionHandler extends ResponseEntityExceptionHandler
         body.put("error", "Booking manipulation error. " + ex.getMessage());
         return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
+
+    @ExceptionHandler(value = StripeException.class)
+    protected ResponseEntity<Object> handleStripeException(
+            StripeException ex,
+            WebRequest request
+    ) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.BAD_REQUEST);
+        body.put("error", "Stripe error. " + ex.getMessage());
+        return handleExceptionInternal(ex, body, new HttpHeaders(), HttpStatus.BAD_REQUEST,
+                request);
+    }
 }

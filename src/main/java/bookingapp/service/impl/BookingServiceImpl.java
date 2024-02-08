@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -34,12 +35,18 @@ public class BookingServiceImpl implements BookingService {
         return bookingMapper.toDto(bookingById);
     }
 
-    private Booking findUsersBookingById(Long userId, Long bookingId) {
+    public Booking findUsersBookingById(Long userId, Long bookingId) {
         Booking bookingById = findBookingById(bookingId);
         if (!bookingById.getUser().getId().equals(userId)) {
             throw new EntityNotFoundException("Can't find users booking by id " + bookingId);
         }
         return bookingById;
+    }
+
+    @Override
+    @Scheduled(cron = "0 0 12 * * ?")
+    public void expireOldBookings() {
+        bookingRepository.expireOldBookings();
     }
 
     private Booking findBookingById(Long bookingId) {
