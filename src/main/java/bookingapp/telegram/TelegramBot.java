@@ -1,12 +1,12 @@
 package bookingapp.telegram;
 
-import io.github.cdimascio.dotenv.Dotenv;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -15,7 +15,10 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
-    private final Dotenv dotenv = Dotenv.load();
+    @Value("${telegram.bot.username}")
+    private String botUsername;
+    @Value("${telegram.bot.token}")
+    private String botToken;
     private final Map<String, Command> commands;
     private final Map<String, String> chatHistory = new ConcurrentHashMap<>();
 
@@ -29,12 +32,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotUsername() {
-        return dotenv.get("TELEGRAM_BOT_USERNAME");
+        return botUsername;
     }
 
     @Override
     public String getBotToken() {
-        return dotenv.get("TELEGRAM_BOT_TOKEN");
+        return botToken;
     }
 
     @Override

@@ -19,3 +19,5 @@ databaseChangeLog:
       file: db/changelog/changes/09-create-bookings-table.yml
   - include:
       file: db/changelog/changes/10-modify-users-table.yml
+  - include:
+      file: db/changelog/changes/11-create-payments-table.yml
